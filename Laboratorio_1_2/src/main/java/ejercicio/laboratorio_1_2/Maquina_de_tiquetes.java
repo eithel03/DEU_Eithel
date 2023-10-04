@@ -13,7 +13,7 @@ import java.util.Scanner;
  */
 public class Maquina_de_tiquetes {
     
-     private int numeroClienteActual = 1;
+      private int numeroClienteActual = 1;
 
     public Cliente generarTiquete() {
         Scanner scanner = new Scanner(System.in);
@@ -61,4 +61,4 @@ public class Maquina_de_tiquetes {
         Random aleatorio = new Random();
         return aleatorio.nextInt(24) + 2;
     }
-}
+}                                   

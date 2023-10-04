@@ -1,12 +1,12 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  */
-
 package ejercicio.laboratorio_1_2;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.Timer;
 
 /**
  *
@@ -15,15 +15,16 @@ import java.util.Scanner;
 public class Laboratorio_1_2 {
 
     public static void main(String[] args) {
-       Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
+        Set<Cliente> clientesAtendidos = new HashSet<>();
 
         boolean continuar = true;
         do {
             System.out.print("Ingrese el número de clientes deseados (no puede ser mayor a 15): ");
             int numClientes = scanner.nextInt();
 
-            if (numClientes > 15) {
-                System.out.println("El número de clientes no puede ser mayor a 15.");
+            if (numClientes <= 0 || numClientes > (15 - clientesAtendidos.size())) {
+                System.out.println("Número de clientes no válido.");
                 System.out.println("¿Desea continuar? (si/no)");
                 scanner.nextLine(); // Limpiar el buffer del teclado
                 if (!scanner.nextLine().equalsIgnoreCase("si")) {
@@ -33,11 +34,11 @@ public class Laboratorio_1_2 {
                 Maquina_de_tiquetes maquina = new Maquina_de_tiquetes();
                 List<Cliente> clientes = generarClientes(maquina, numClientes);
 
-                //Se llama al metodo:
                 asignarNumerosDeTurno(clientes);
 
-                // Se llama al metodo: atender clientes en cajas
-                atenderClientesEnCajas(clientes);
+                atenderClientesEnCajas(clientes, clientesAtendidos);
+
+                clientesAtendidos.addAll(clientes);
 
                 System.out.println("¿Deseas volver a registrar? (si/no)");
                 scanner.nextLine(); // Limpiar el buffer del teclado
@@ -65,29 +66,48 @@ public class Laboratorio_1_2 {
         }
     }
 
-    public static void atenderClientesEnCajas(List<Cliente> clientes) {
-        // Crear cajas
+    public static void atenderClientesEnCajas(List<Cliente> clientes, Set<Cliente> clientesAtendidos) {
         Caja[] cajas = new Caja[4];
         for (int i = 0; i < cajas.length; i++) {
             cajas[i] = new Caja(i + 1);
         }
 
-        // Se atiende los clientes en las cajas
-        for (Cliente cliente : clientes) {
-            Caja cajaDisponible = buscarCajaDisponible(cajas);
-            if (cajaDisponible != null) {
-                cajaDisponible.atenderCliente(cliente);
-                cajaDisponible.ocuparCaja(); // Se ocupa la caja después de que se atiende un cliente
-            }
-        }
-    }
+        int clienteAtendido = 0;
+        Queue<Cliente> filaClientes = new PriorityQueue<>(Comparator.comparing(Cliente::getLetra));
 
-    public static Caja buscarCajaDisponible(Caja[] cajas) {
-        for (Caja caja : cajas) {
-            if (caja.estaDisponible()) {
-                return caja;
+        for (Cliente cliente : clientes) {
+            filaClientes.add(cliente);
+        }
+
+        while (clienteAtendido < clientes.size()) {
+            for (Caja caja : cajas) {
+                if (clienteAtendido >= clientes.size()) {
+                    break;
+                }
+
+                if (caja.estaDisponible()) {
+                    Cliente cliente = filaClientes.poll();
+                    if (cliente != null) {
+                        caja.atenderCliente(cliente);
+                        caja.ocuparCaja();
+
+                        Timer temporizador = new Timer(cliente.getTiempoTramite() * 1000, new ActionListener() {
+                            @Override
+                            public void actionPerformed(ActionEvent e) {
+                                caja.liberarCaja();
+                                Cliente siguienteCliente = filaClientes.poll();
+                                if (siguienteCliente != null) {
+                                    caja.atenderCliente(siguienteCliente);
+                                }
+                            }
+                        });
+                        temporizador.setRepeats(false);
+                        temporizador.start();
+
+                        clienteAtendido++;
+                    }
+                }
             }
         }
-        return null;
     }
 }
